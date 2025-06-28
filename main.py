@@ -21,9 +21,10 @@ def health():
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    update = Update.de_json(request.get_json(force=True))
+    update = Update.de_json(request.get_json(force=True), application.bot)
     application.create_task(application.process_update(update))
     return "OK"
+
 
 def setup():
     asyncio.get_event_loop().run_until_complete(
