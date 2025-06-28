@@ -1,37 +1,31 @@
 from flask import Flask, request
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+import asyncio
 
-import os, asyncio
+TOKEN = "8163568593:AAFfCXQP_LvkOBHAL7RFirofxe0aAMHe8Lc"
 
-TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-
+# Flask App
 app = Flask(__name__)
+
+# Telegram Application
 application = ApplicationBuilder().token(TOKEN).build()
 
-async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+# /start command handler
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Bot is live! ✅")
 
 application.add_handler(CommandHandler("start", start))
 
-@app.route("/", methods=["GET"])
-def health():
-    return "OK"
-
+# Webhook route
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    update = Update.de_json(request.get_json(force=True), application.bot)
-    application.create_task(application.process_update(update))
+    update = Update.de_json(request.get_json(force=True))
+    asyncio.run(application.process_update(update))
     return "OK"
 
+# Optional: basic route for Render's health check
+@app.route("/", methods=["GET"])
+def home():
+    return "Bot server running ✅"
 
-def setup():
-    asyncio.get_event_loop().run_until_complete(
-        application.bot.set_webhook(WEBHOOK_URL + "/webhook")
-    )
-    print("✅ Webhook set:", WEBHOOK_URL + "/webhook")
-
-if __name__ == "__main__":
-    setup()
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 10000)))
