@@ -20,7 +20,7 @@ application.add_handler(CommandHandler("start", start))
 # Webhook route
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    update = Update.de_json(request.get_json(force=True))
+    update = Update.de_json(request.get_json(force=True), application.bot)
     asyncio.run(application.process_update(update))
     return "OK"
 
