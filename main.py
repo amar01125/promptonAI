@@ -6,12 +6,14 @@ from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, Messa
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # ✅ webhook url environment variable
 
 openai.api_key = OPENAI_API_KEY
 
 app = Flask(__name__)
 application = None
+
+# ==== Telegram Handlers ====
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Hi! I'm your AI bot. Ask me anything.")
@@ -27,6 +29,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     bot_reply = response.choices[0].message.content
     await update.message.reply_text(bot_reply)
 
+# ==== Flask Routes ====
+
 @app.route("/")
 def health_check():
     return "Bot is running."
@@ -37,12 +41,19 @@ def webhook():
     application.update_queue.put_nowait(update)
     return "OK"
 
+# ==== Bot Setup ====
+
 def setup_bot():
     global application
     application = ApplicationBuilder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    application.bot.set_webhook(WEBHOOK_URL + "/webhook")
+
+    # ✅ Fix: async call to set_webhook must be awaited
+    import asyncio
+    asyncio.get_event_loop().run_until_complete(
+        application.bot.set_webhook(WEBHOOK_URL + "/webhook")
+    )
+
     print("Bot setup complete and webhook set.")
 
-setup_bot()
