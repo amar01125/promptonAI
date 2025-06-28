@@ -2,30 +2,34 @@ from flask import Flask, request
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import asyncio
+import os
 
-TOKEN = "8163568593:AAFfCXQP_LvkOBHAL7RFirofxe0aAMHe8Lc"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# Flask App
 app = Flask(__name__)
 
-# Telegram Application
-application = ApplicationBuilder().token(TOKEN).build()
+application = ApplicationBuilder().token(BOT_TOKEN).build()
 
 # /start command handler
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Bot is live! ✅")
+    await update.message.reply_text("✅ Bot Render par successfully chal raha hai!")
 
 application.add_handler(CommandHandler("start", start))
 
-# Webhook route
-@app.route("/webhook", methods=["POST"])
-def webhook():
-    update = Update.de_json(request.get_json(force=True), application.bot)
-    asyncio.run(application.process_update(update))
-    return "OK"
+# webhook route
+@app.post("/webhook")
+async def webhook():
+    try:
+        data = request.get_json(force=True)
+        update = Update.de_json(data, application.bot)
+        if not application.initialized:
+            await application.initialize()
+        await application.process_update(update)
+        return "OK"
+    except Exception as e:
+        print(f"❌ Webhook Error: {e}")
+        return "Internal Server Error", 500
 
-# Optional: basic route for Render's health check
-@app.route("/", methods=["GET"])
-def home():
-    return "Bot server running ✅"
-
+# local testing (not used on render)
+if __name__ == '__main__':
+    app.run(port=10000)
